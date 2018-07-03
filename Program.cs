@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Threading.Tasks;
 using BsaHw1.Connectors;
+using BsaHw1.Models;
+using BsaHw1.Services;
 using Newtonsoft.Json;
 
 namespace BsaHw1
@@ -10,46 +12,33 @@ namespace BsaHw1
   {
     static void Main(string[] args)
     {
-      AsyncMain(args).Wait();
+      try
+      {
+        AsyncMain(args).Wait();
+      } catch(Exception e) {
+        Console.WriteLine($"Error: {e.InnerException?.InnerException?.Message}");
+      }
     }
 
     static async Task AsyncMain(string[] args)
     {
       Console.WriteLine("Go");
       var connector = new BlogConnector();
+      var service = new BlogService(connector);
 
-      var usersTask = connector.GetUsers();
-      var postsTask = connector.GetPosts();
-      var commentsTask = connector.GetComments();
-      var todosTask = connector.GetToDos();
-      var addressesTask = connector.GetAddresses();
+      var users = service.GetUsersSorted();
 
-      var users = await usersTask;
-      var posts = await postsTask;
-      var comments = await commentsTask;
-      var todos = await todosTask;
-      var addresses = await addressesTask;
+      foreach (var user in users)
+      {
+          Console.WriteLine(JsonConvert.SerializeObject(user));
+          foreach (var todo in user.ToDos)
+          {
+              Console.WriteLine($">>> {JsonConvert.SerializeObject(todo)}");
+          }
+          Console.WriteLine();
+      }
 
-      Console.WriteLine(JsonConvert.SerializeObject(users.First()));
-      Console.WriteLine(JsonConvert.SerializeObject(posts.First()));
-      Console.WriteLine(JsonConvert.SerializeObject(comments.First()));
-      Console.WriteLine(JsonConvert.SerializeObject(todos.First()));
-      Console.WriteLine(JsonConvert.SerializeObject(addresses.First()));
-
-      //   var postComment = from p in posts
-      //                     join c in comments on p.Id equals c.PostId into comms
-      //                     select (Post: p, Comments: comms);
-
-      //   var dataStructure = from u in users
-      //                       join pc in postComment on u.Id equals pc.Post.UserId into pots
-      //                       select (User: u, Posts: pots);
-
-
-
-      //   foreach (var item in dataStructure)
-      //   {
-      //     Console.WriteLine($"{item.User.Id} | {item.Posts.FirstOrDefault()} | {((dynamic)item.Posts.FirstOrDefault())?.Comments.FirstOrDefault()}");
-      //   }
+      Console.WriteLine("Done.");
     }
   }
 }

@@ -7,31 +7,39 @@ using Newtonsoft.Json;
 
 namespace BsaHw1.Connectors
 {
-  public class BlogConnector
+  public interface IBlogConnector {
+    Task<IList<User>> GetUsersAsync();
+    Task<IList<Post>> GetPostsAsync();
+    Task<IList<Comment>> GetCommentsAsync();
+    Task<IList<ToDo>> GetToDosAsync();
+    Task<IList<Address>> GetAddressesAsync();
+  }
+
+  public class BlogConnector : IBlogConnector
   {
     private const string BASE_URL = "https://5b128555d50a5c0014ef1204.mockapi.io/";
 
-    public async Task<IList<User>> GetUsers()
+    public async Task<IList<User>> GetUsersAsync()
     {
       return await Get<IList<User>>("users");
     }
 
-    public async Task<IList<Post>> GetPosts()
+    public async Task<IList<Post>> GetPostsAsync()
     {
       return await Get<IList<Post>>("posts");
     }
 
-    public async Task<IList<Comment>> GetComments()
+    public async Task<IList<Comment>> GetCommentsAsync()
     {
       return await Get<IList<Comment>>("comments");
     }
 
-    public async Task<IList<ToDo>> GetToDos()
+    public async Task<IList<ToDo>> GetToDosAsync()
     {
       return await Get<IList<ToDo>>("todos");
     }
 
-    public async Task<IList<Address>> GetAddresses()
+    public async Task<IList<Address>> GetAddressesAsync()
     {
       return await Get<IList<Address>>("address");
     }
