@@ -15,7 +15,8 @@ namespace BsaHw1.Models
 
   public class PostStats : Post
   {
-    public PostStats(Post post) {
+    public PostStats(Post post)
+    {
       Id = post.Id;
       CreatedAt = post.CreatedAt;
       Title = post.Title;
@@ -23,8 +24,8 @@ namespace BsaHw1.Models
       UserId = post.UserId;
       Likes = post.Likes;
     }
-    public Comment TheLongestComment {get;set;}
-    public Comment PopularComment {get;set;}
-    public int ShortOrNotPopularComment {get;set;}
+    public Comment TheLongestComment { get; set; }
+    public Comment PopularComment { get; set; }
+    public int ShortOrNotPopularComments { get; set; }
   }
 }

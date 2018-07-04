@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using BsaHw1.Connectors;
 using BsaHw1.Models;
 using BsaHw1.Services;
+using BsaHw1.Menus;
 using Newtonsoft.Json;
 
 namespace BsaHw1
@@ -12,33 +13,31 @@ namespace BsaHw1
   {
     static void Main(string[] args)
     {
-      try
-      {
-        AsyncMain(args).Wait();
-      } catch(Exception e) {
-        Console.WriteLine($"Error: {e.InnerException?.InnerException?.Message}");
-      }
-    }
-
-    static async Task AsyncMain(string[] args)
-    {
-      Console.WriteLine("Go");
       var connector = new BlogConnector();
       var service = new BlogService(connector);
-
-      var users = service.GetUsersSorted();
-
-      foreach (var user in users)
+      var menu = new Menu(service);
+      while (true)
       {
-          Console.WriteLine(JsonConvert.SerializeObject(user));
-          foreach (var todo in user.ToDos)
-          {
-              Console.WriteLine($">>> {JsonConvert.SerializeObject(todo)}");
-          }
-          Console.WriteLine();
-      }
+        menu.Show();
+        var input = Console.ReadLine();
+        int option;
+        if (!int.TryParse(input, out option))
+        {
+          Console.WriteLine("Try again . . .");
+          Console.ReadKey();
+          continue;
+        }
 
-      Console.WriteLine("Done.");
+        var wasHandled = menu.Handle(option);
+
+        if (!wasHandled)
+        {
+          Console.WriteLine("Invalid input or something went wrong. Shutting down . . .");
+          Console.ReadKey();
+          break;
+        }
+        Console.Clear();
+      }
     }
   }
 }

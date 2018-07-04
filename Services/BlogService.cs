@@ -9,19 +9,31 @@ using Newtonsoft.Json;
 
 namespace BsaHw1.Services
 {
-  public class BlogService
+  public interface IBlogService
+  {
+    IList<(Post, int)> GetCommentsCount(int userId);
+    IList<string> GetCommentsLessThan50Length(int userId);
+    IList<(int, string)> GetCompletedToDos(int userId);
+    IList<User> GetUsersSorted();
+    UserStats GetUserStats(int userId);
+    PostStats GetPostStats(int postId);
+  }
+
+  public class BlogService : IBlogService
   {
     private IBlogConnector _connector;
     private Lazy<IList<User>> _cachedUsers;
 
-    public BlogService(IBlogConnector connector) {
+    public BlogService(IBlogConnector connector)
+    {
       this._connector = connector;
 
       // Just To Make It Work Faster
       _cachedUsers = new Lazy<IList<User>>(() => LoadData().Result);
     }
 
-    protected async Task<IList<User>> LoadData() {
+    protected async Task<IList<User>> LoadData()
+    {
       Console.WriteLine("BlogService:LoadData");
       var usersTask = _connector.GetUsersAsync();
       var postsTask = _connector.GetPostsAsync();
@@ -29,7 +41,7 @@ namespace BsaHw1.Services
       var addressesTask = _connector.GetAddressesAsync();
       var toDosTask = _connector.GetToDosAsync();
 
-      Console.WriteLine("BlogService:LoadData:data loaded");
+      Console.WriteLine("BlogService:LoadData:Data Loaded");
       return BuildDataSet(
         await usersTask, await postsTask, await commentsTask,
         await addressesTask, await toDosTask
@@ -39,12 +51,15 @@ namespace BsaHw1.Services
     protected IList<User> BuildDataSet(
       IList<User> usersResponce, IList<Post> postsResponce, IList<Comment> comments,
       IList<Address> addresses, IList<ToDo> todos
-    ) {
-      var posts = from p in postsResponce join c in comments
+    )
+    {
+      var posts = from p in postsResponce
+                  join c in comments
                     on p.Id equals c.PostId into postComments
                   select Post.Create(p, postComments);
 
-      var users = from u in usersResponce join p in posts
+      var users = from u in usersResponce
+                  join p in posts
                     on u.Id equals p.UserId into userPosts
                   join a in addresses
                     on u.Id equals a.UserId into userAddress
@@ -55,55 +70,66 @@ namespace BsaHw1.Services
       return users.ToList();
     }
 
-    public IList<(Post, int)> GetCommentsCount(int userId) {
+    public IList<(Post, int)> GetCommentsCount(int userId)
+    {
       var users = _cachedUsers.Value;
 
-      var userPosts = users.FirstOrDefault(x => x.Id == userId)?.Posts
+      var userPosts = users.FirstOrDefault(x => x.Id == userId)
+                           ?.Posts
                            .Select(x => (x, x.Comments.Count));
 
-      return userPosts.ToList();
+      return userPosts?.ToList();
     }
 
-    public IList<string> GetCommentsLessThan50Length(int userId) {
+    public IList<string> GetCommentsLessThan50Length(int userId)
+    {
       var users = _cachedUsers.Value;
 
-      var comments = users.FirstOrDefault(x => x.Id == userId)?.Posts
-                           .Select(x => x.Comments)
-                           .SelectMany(x => x)
-                           .Where(x => x.Body.Length < 50)
-                           .Select(x => x.Body);
+      var comments = users.FirstOrDefault(x => x.Id == userId)
+                          ?.Posts
+                          .SelectMany(x => x.Comments)
+                          .Where(x => x.Body.Length < 50)
+                          .Select(x => x.Body);
 
-      return comments.ToList();
+      return comments?.ToList();
     }
 
-    public IList<(int, string)> GetCompletedToDos(int userId) {
+    public IList<(int, string)> GetCompletedToDos(int userId)
+    {
       var users = _cachedUsers.Value;
 
-      var todos = users.FirstOrDefault(x => x.Id == userId)?.ToDos
+      var todos = users.FirstOrDefault(x => x.Id == userId)
+                       ?.ToDos
                        .Where(x => x.IsComplete)
                        .Select(x => (x.Id, x.Name));
 
-      return todos.ToList();
+      return todos?.ToList();
     }
 
-    public IList<User> GetUsersSorted() {
+    public IList<User> GetUsersSorted()
+    {
       var users = _cachedUsers.Value;
 
-      var sortedOne = users.OrderBy(x => x.Name).Select(x => new User(x) {
-          ToDos = x.ToDos.OrderByDescending(t => t.Name.Length).ToList()
+      var sortedOne = users.OrderBy(x => x.Name).Select(x => new User(x)
+      {
+        ToDos = x.ToDos.OrderByDescending(t => t.Name.Length).ToList()
       });
 
       return sortedOne.ToList();
     }
 
-    public UserStats GetUserStats(int userId) {
+    public UserStats GetUserStats(int userId)
+    {
       var user = _cachedUsers.Value.FirstOrDefault(x => x.Id == userId);
+
+      if (user == null)
+        return null;
 
       var userStats = new UserStats(user);
       userStats.LastPost = user.Posts.OrderByDescending(x => x.CreatedAt).FirstOrDefault();
       userStats.LastPostCommentsCount = userStats.LastPost?.Comments.Count;
       userStats.IncompletedTasksCount = user.ToDos.Where(x => !x.IsComplete).Count();
-      userStats.TheMostCommentsPost = user.Posts.OrderByDescending(x => 
+      userStats.TheMostCommentsPost = user.Posts.OrderByDescending(x =>
         x.Comments.Where(c => c.Body.Length > 80).Count()
       ).FirstOrDefault();
       userStats.PopularPost = user.Posts.OrderByDescending(x => x.Likes).FirstOrDefault();
@@ -111,13 +137,17 @@ namespace BsaHw1.Services
       return userStats;
     }
 
-    public PostStats GetPostStats(int postId) {
-      var post = _cachedUsers.Value.Select(x => x.Posts).SelectMany(x => x).FirstOrDefault(x => x.Id == postId);
+    public PostStats GetPostStats(int postId)
+    {
+      var post = _cachedUsers.Value.SelectMany(x => x.Posts).FirstOrDefault(x => x.Id == postId);
+
+      if (post == null)
+        return null;
 
       var postStats = new PostStats(post);
       postStats.TheLongestComment = post.Comments.OrderByDescending(x => x.Body.Length).FirstOrDefault();
       postStats.PopularComment = post.Comments.OrderByDescending(x => x.Likes).FirstOrDefault();
-      postStats.ShortOrNotPopularComment = post.Comments.Where(x => x.Likes == 0 || x.Body.Length < 80).Count();
+      postStats.ShortOrNotPopularComments = post.Comments.Where(x => x.Likes == 0 || x.Body.Length < 80).Count();
 
       return postStats;
     }
